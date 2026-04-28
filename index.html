@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>テキスト一括置換ツール</title>
+    <style>
+        /* カラーパレット・変数の定義 */
+        :root {
+            --primary-color: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success-color: #059669;
+            --success-hover: #047857;
+            --danger-color:  #dc2626;
+            --danger-hover:  #b91c1c;
+            --bg-color:      #f3f4f6;
+            --panel-bg:      #ffffff;
+            --border-color:  #d1d5db;
+            --text-color:    #1f2937;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Meiryo', 'Noto Sans JP', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        .app-header {
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            background-color: var(--panel-bg);
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tools-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 220px;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary { background-color: var(--primary-color); }
+        .btn-primary:hover { background-color: var(--primary-hover); }
+
+        .btn-success { background-color: var(--success-color); }
+        .btn-success:hover { background-color: var(--success-hover); }
+
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-danger:hover { background-color: var(--danger-hover); }
+
+        .editor-container {
+            flex-grow: 1;
+            display: flex;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+            border: none;
+            resize: none;
+            font-size: 15px;
+            font-family: 'Consolas', 'Courier New', 'Myrica M', monospace;
+            line-height: 1.6;
+            outline: none;
+            background: transparent;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #334155;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 12px 16px;
+            position: fixed;
+            z-index: 10;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s, bottom 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-header">
+        📝 テキスト一括置換・編集ツール
+    </div>
+
+    <div class="toolbar">
+        <div class="tools-group">
+            <div class="input-group">
+                <input type="text" id="search-text" placeholder="検索する文字列">
+            </div>
+            <span>→</span>
+            <div class="input-group">
+                <input type="text" id="replace-text" placeholder="置換後の文字列">
+            </div>
+            <button id="btn-replace" class="btn-primary">一括置換</button>
+        </div>
+
+        <div class="tools-group">
+            <button id="btn-copy" class="btn-success">📋 コピー</button>
+            <button id="btn-clear" class="btn-danger">🗑️ 削除(クリア)</button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <textarea id="main-textarea" placeholder="ここにテキストを入力またはペーストしてください..."></textarea>
+    </div>
+
+    <div id="toast">クリップボードにコピーしました！</div>
+
+    <script>
+        const textarea = document.getElementById('main-textarea');
+        const searchInput = document.getElementById('search-text');
+        const replaceInput = document.getElementById('replace-text');
+        const btnReplace = document.getElementById('btn-replace');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnClear = document.getElementById('btn-clear');
+        const toast = document.getElementById('toast');
+
+        function showToast(message) {
+            toast.textContent = message;
+            toast.className = "show";
+            setTimeout(() => {
+                toast.className = toast.className.replace("show", "");
+            }, 3000);
+        }
+
+        // 高度な置換機能（範囲選択対応）
+        btnReplace.addEventListener('click', () => {
+            const searchValue = searchInput.value;
+            const replaceValue = replaceInput.value;
+
+            if (!searchValue) {
+                showToast("⚠️ 検索する文字列を入力してください");
+                return;
+            }
+
+            const originalText = textarea.value;
+            
+            // カーソルの選択範囲（開始位置と終了位置）を取得
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+
+            // start と end が異なる＝テキストが範囲選択されている場合
+            if (start !== end) {
+                // テキストを「選択前」「選択中」「選択後」の3つに分割
+                const beforeSelection = originalText.substring(0, start);
+                const selectedText = originalText.substring(start, end);
+                const afterSelection = originalText.substring(end);
+
+                // 選択範囲の中だけを置換
+                const replacedSelection = selectedText.replaceAll(searchValue, replaceValue);
+
+                if (selectedText === replacedSelection) {
+                    showToast("選択範囲内に対象の文字列が見つかりませんでした");
+                    return;
+                }
+
+                // 分割したテキストを再結合して反映
+                textarea.value = beforeSelection + replacedSelection + afterSelection;
+                
+                // 置換後の文字列に合わせて選択範囲を復元（使い勝手向上のため）
+                textarea.setSelectionRange(start, start + replacedSelection.length);
+                textarea.focus();
+                
+                showToast("✨ 選択範囲内のみ置換しました");
+
+            } else {
+                // 範囲選択されていない場合は全体を置換（前回と同じ処理）
+                const newText = originalText.replaceAll(searchValue, replaceValue);
+                
+                if (originalText === newText) {
+                    showToast("対象の文字列が見つかりませんでした");
+                } else {
+                    textarea.value = newText;
+                    showToast("✨ 全体の一括置換が完了しました");
+                }
+            }
+        });
+
+        btnCopy.addEventListener('click', async () => {
+            if (!textarea.value) {
+                showToast("コピーするテキストがありません");
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(textarea.value);
+                showToast("📋 クリップボードにコピーしました！");
+            } catch (err) {
+                textarea.select();
+                document.execCommand('copy');
+                showToast("📋 コピーしました！");
+            }
+        });
+
+        btnClear.addEventListener('click', () => {
+            if (confirm("テキストをすべて削除してもよろしいですか？")) {
+                textarea.value = '';
+                searchInput.value = '';
+                replaceInput.value = '';
+                textarea.focus();
+                showToast("🗑️ テキストをクリアしました");
+            }
+        });
+    </script>
+</body>
+</html>
