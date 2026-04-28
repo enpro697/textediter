@@ -26,13 +26,13 @@
             --input-bg:      #ffffff;
         }
 
-        /* --- ダークモード時の色（上書き） --- */
+        /* --- ダークモード時の色（青みを完全に抜いた黒・グレー系に変更） --- */
         body.dark-mode {
-            --bg-color:      #111827; /* 黒に近いグレー */
-            --panel-bg:      #1f2937; /* パネルの背景（少し明るい黒） */
-            --border-color:  #374151; /* 暗い枠線 */
-            --text-color:    #f9fafb; /* 白に近いグレー */
-            --input-bg:      #374151; /* 入力欄の背景 */
+            --bg-color:      #000000; /* 背景：真っ黒 */
+            --panel-bg:      #1a1a1a; /* ツールバー等：ニュートラルなダークグレー */
+            --border-color:  #333333; /* 枠線：暗めのグレー */
+            --text-color:    #e5e5e5; /* 文字色：明るいグレー（眩しすぎない白） */
+            --input-bg:      #262626; /* 入力欄：少し明るめのダークグレー */
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -219,8 +219,6 @@
             </div>
              <button id="btn-search-only" class="btn-primary">検索</button>
             <button id="btn-replace" class="btn-primary">一括置換</button>
-            
-           
         </div>
 
         <div class="tools-group">
@@ -287,7 +285,7 @@
             }
         });
 
-        // --- 新規追加：検索（ハイライト＆カウント）機能 ---
+        // 検索（ハイライト＆カウント）機能
         btnSearchOnly.addEventListener('click', () => {
             const searchValue = searchInput.value;
             if (!searchValue) {
@@ -306,7 +304,6 @@
             }
 
             // テキスト全体の中から検索文字列がいくつ含まれているかをカウント
-            // (検索文字列でテキストを分割した配列の要素数 - 1 がヒット数になります)
             const hitCount = text.split(searchValue).length - 1;
 
             // テキストエリアにフォーカスを当て、初回ヒット部分を範囲選択（ハイライト）
