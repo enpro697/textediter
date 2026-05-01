@@ -41,7 +41,8 @@
             font-family: 'Segoe UI', 'Meiryo', 'Noto Sans JP', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
-            height: 100vh;
+            /* スマホのキーボード対応：100dvhに変更 */
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             padding: 16px;
@@ -197,6 +198,14 @@
             opacity: 1;
             bottom: 50px;
         }
+
+        /* スマホ用のレイアウト調整 */
+        @media (max-width: 600px) {
+            body { padding: 8px; }
+            .toolbar { flex-direction: column; padding: 8px; gap: 8px; }
+            .tools-group { width: 100%; justify-content: space-between; }
+            .input-group, input[type="text"] { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -285,7 +294,7 @@
             }
         });
 
-        // --- アップデート：100%確実にスクロールさせるダミー要素方式 ---
+        // 検索・スクロール機能
         btnSearchOnly.addEventListener('click', () => {
             const searchValue = searchInput.value;
             if (!searchValue) {
@@ -313,15 +322,14 @@
 
             const hitCount = text.split(searchValue).length - 1;
 
-            // 1. フォーカスを当てて選択範囲をセット
+            // フォーカスを当てて選択範囲をセット
             textarea.focus();
             textarea.setSelectionRange(foundIndex, foundIndex + searchValue.length);
 
-            // ▼ ▼ ▼ 確実なスクロール位置計算（Mirror Div ハック） ▼ ▼ ▼
+            // 確実なスクロール位置計算（Mirror Div ハック）
             const mirrorDiv = document.createElement('div');
             const style = window.getComputedStyle(textarea);
 
-            // テキストエリアと全く同じスタイルをコピーして見えないDivを作る
             mirrorDiv.style.fontFamily = style.fontFamily;
             mirrorDiv.style.fontSize = style.fontSize;
             mirrorDiv.style.lineHeight = style.lineHeight;
@@ -332,26 +340,20 @@
             mirrorDiv.style.wordWrap = 'break-word';
             mirrorDiv.style.position = 'absolute';
             mirrorDiv.style.visibility = 'hidden';
-            mirrorDiv.style.left = '-9999px'; // 画面外に配置
+            mirrorDiv.style.left = '-9999px';
 
-            // 検索文字の「直前まで」のテキストを入れる
             mirrorDiv.textContent = text.substring(0, foundIndex);
 
-            // マーカー（span）を入れてY座標を測定する
             const marker = document.createElement('span');
             marker.textContent = searchValue;
             mirrorDiv.appendChild(marker);
             document.body.appendChild(mirrorDiv);
 
-            // マーカーのY座標を取得し、テキストエリアの高さの半分を引いて「画面の中央」にスクロール
             const targetY = marker.offsetTop - (textarea.clientHeight / 2);
             textarea.scrollTop = targetY > 0 ? targetY : 0;
 
-            // 用済みのダミー要素を削除
             document.body.removeChild(mirrorDiv);
-            // ▲ ▲ ▲ ここまで ▲ ▲ ▲
 
-            // 一番上に戻った時以外の通常ヒット時の通知
             if (text.indexOf(searchValue, searchStartIndex) !== -1) {
                  showToast(`🔍 ${hitCount}件ヒットしました`);
             }
@@ -398,19 +400,50 @@
             }
         });
 
-        // コピー機能
+        // コピー機能（スマホ・ローカルファイル対応強化版）
         btnCopy.addEventListener('click', async () => {
-            if (!textarea.value) {
+            const textToCopy = textarea.value;
+            if (!textToCopy) {
                 showToast("コピーするテキストがありません");
                 return;
             }
+
+            // 1. 最新のクリップボードAPIを試す (HTTPS環境などで有効)
+            if (navigator.clipboard && window.isSecureContext) {
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    showToast("📋 クリップボードにコピーしました！");
+                    return; // 成功したらここで終了
+                } catch (err) {
+                    console.warn("Clipboard API failed, falling back...", err);
+                }
+            }
+
+            // 2. 失敗した場合は古い方法 (execCommand) で強制コピー
+            const currentScroll = textarea.scrollTop;
+            const currentStart = textarea.selectionStart;
+            const currentEnd = textarea.selectionEnd;
+
+            // iOS対策: 選択時にキーボードが出ないように一時的に読み取り専用にする
+            textarea.readOnly = true; 
+            
+            // 確実に全体を選択する
+            textarea.setSelectionRange(0, textToCopy.length);
+            
             try {
-                await navigator.clipboard.writeText(textarea.value);
-                showToast("📋 クリップボードにコピーしました！");
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast("📋 コピーしました！");
+                } else {
+                    showToast("❌ コピーに失敗しました");
+                }
             } catch (err) {
-                textarea.select();
-                document.execCommand('copy');
-                showToast("📋 コピーしました！");
+                showToast("❌ お使いのブラウザではコピーできません");
+            } finally {
+                // 選択状態や読み取り専用を元に戻す
+                textarea.readOnly = false;
+                textarea.setSelectionRange(currentStart, currentEnd);
+                textarea.scrollTop = currentScroll;
             }
         });
 
