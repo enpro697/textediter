@@ -176,6 +176,21 @@
             margin: 0;
         }
 
+        /* 全画面用のミニツールバー（左上） */
+        .fullscreen-toolbar {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            display: none; /* 通常時は非表示 */
+            gap: 8px;
+            z-index: 10000;
+        }
+
+        .editor-container.fullscreen .fullscreen-toolbar {
+            display: flex; /* 全画面時に表示 */
+        }
+
+        /* 全画面解除用の×ボタン（右上） */
         .btn-close-fullscreen {
             position: absolute;
             top: 16px;
@@ -186,7 +201,7 @@
             background-color: rgba(0, 0, 0, 0.6);
             color: white;
             font-size: 24px;
-            display: none; /* 通常時は非表示 */
+            display: none;
             align-items: center;
             justify-content: center;
             z-index: 10000;
@@ -200,7 +215,7 @@
         }
 
         .editor-container.fullscreen .btn-close-fullscreen {
-            display: flex; /* 全画面時に表示 */
+            display: flex;
         }
         /* -------------------------- */
 
@@ -218,9 +233,11 @@
             color: var(--text-color);
         }
 
-        /* 全画面時のテキストエリアの余白調整（右上の×ボタンと被らないように） */
+        /* 全画面時のテキストエリアの余白調整（上部のボタン群と被らないように） */
         .editor-container.fullscreen textarea {
-            padding-right: 70px;
+            padding-top: 75px; 
+            padding-right: 20px;
+            padding-left: 20px;
         }
 
         #toast {
@@ -279,7 +296,7 @@
         </div>
 
         <div class="tools-group">
-            <!-- 追加された装飾ボタン -->
+            <!-- 通常画面用の装飾ボタン -->
             <button id="btn-wrap-left-paren" class="btn-wrap">(</button>
             <button id="btn-wrap-both-paren" class="btn-wrap">()</button>
             <button id="btn-wrap-asterisk" class="btn-wrap">**</button>
@@ -293,6 +310,13 @@
     </div>
 
     <div class="editor-container" id="editor-container">
+        <!-- 全画面モード時のみ表示されるミニツールバー -->
+        <div class="fullscreen-toolbar">
+            <button id="btn-fs-wrap-left-paren" class="btn-wrap">(</button>
+            <button id="btn-fs-wrap-both-paren" class="btn-wrap">()</button>
+            <button id="btn-fs-wrap-asterisk" class="btn-wrap">**</button>
+        </div>
+        
         <!-- 全画面解除用の×ボタン -->
         <button id="btn-close-fullscreen" class="btn-close-fullscreen">×</button>
         <textarea id="main-textarea" placeholder="ここにテキストを入力、またはファイルを読み込んでください..."></textarea>
@@ -316,9 +340,16 @@
         const editorContainer = document.getElementById('editor-container');
         const btnFullscreen = document.getElementById('btn-fullscreen');
         const btnCloseFullscreen = document.getElementById('btn-close-fullscreen');
+        
+        // 通常ボタン
         const btnWrapLeftParen = document.getElementById('btn-wrap-left-paren');
         const btnWrapBothParen = document.getElementById('btn-wrap-both-paren');
         const btnWrapAsterisk = document.getElementById('btn-wrap-asterisk');
+        
+        // 全画面用ボタン
+        const btnFsWrapLeftParen = document.getElementById('btn-fs-wrap-left-paren');
+        const btnFsWrapBothParen = document.getElementById('btn-fs-wrap-both-paren');
+        const btnFsWrapAsterisk = document.getElementById('btn-fs-wrap-asterisk');
 
         function showToast(message) {
             toast.textContent = message;
@@ -333,7 +364,7 @@
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const text = textarea.value;
-            const currentScroll = textarea.scrollTop; // ← 追加: 現在のスクロール位置を記憶
+            const currentScroll = textarea.scrollTop; // スクロール位置を記憶
             
             // 選択された文字列を取得（選択範囲がない場合は空文字）
             const selectedText = text.substring(start, end);
@@ -348,12 +379,19 @@
             textarea.focus();
             textarea.setSelectionRange(start + before.length, end + before.length);
             
-            textarea.scrollTop = currentScroll; // ← 追加: スクロール位置を元に戻す
+            // スクロール位置を元に戻す
+            textarea.scrollTop = currentScroll;
         }
 
+        // 通常画面のボタンにイベントを紐付け
         btnWrapLeftParen.addEventListener('click', () => insertTextAround('(', ''));
         btnWrapBothParen.addEventListener('click', () => insertTextAround('(', ')'));
         btnWrapAsterisk.addEventListener('click', () => insertTextAround('*', '*'));
+
+        // 全画面のミニツールバーのボタンにも同じイベントを紐付け
+        btnFsWrapLeftParen.addEventListener('click', () => insertTextAround('(', ''));
+        btnFsWrapBothParen.addEventListener('click', () => insertTextAround('(', ')'));
+        btnFsWrapAsterisk.addEventListener('click', () => insertTextAround('*', '*'));
 
         // --- 全画面切り替え機能 ---
         btnFullscreen.addEventListener('click', () => {
