@@ -333,6 +333,7 @@
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const text = textarea.value;
+            const currentScroll = textarea.scrollTop; // ← 追加: 現在のスクロール位置を記憶
             
             // 選択された文字列を取得（選択範囲がない場合は空文字）
             const selectedText = text.substring(start, end);
@@ -346,6 +347,8 @@
             // フォーカスを戻し、選択状態を維持して連続操作しやすくする
             textarea.focus();
             textarea.setSelectionRange(start + before.length, end + before.length);
+            
+            textarea.scrollTop = currentScroll; // ← 追加: スクロール位置を元に戻す
         }
 
         btnWrapLeftParen.addEventListener('click', () => insertTextAround('(', ''));
